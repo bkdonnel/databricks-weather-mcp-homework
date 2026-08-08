@@ -296,5 +296,15 @@ if __name__ == "__main__":
 
     # Databricks Apps route external HTTP traffic to this port via app.yaml;
     # streamable-http is the transport Databricks' MCP client/gateway expects.
+    # stateless_http + json_response: Databricks' AI Gateway tool-discovery
+    # client calls tools/list as a single request with no prior session
+    # handshake and doesn't consume a chunked text/event-stream body - the
+    # default session-based SSE transport silently returns no tools to it.
     port = int(os.getenv("DATABRICKS_APP_PORT", os.getenv("PORT", 8000)))
-    mcp.run(transport="http", host="0.0.0.0", port=port)
+    mcp.run(
+        transport="http",
+        host="0.0.0.0",
+        port=port,
+        stateless_http=True,
+        json_response=True,
+    )
