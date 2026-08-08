@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Weather Agent Dashboard</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f7f7f8;
+    --fg: #1a1a1a;
+    --card: #ffffff;
+    --border: #e0e0e0;
+    --muted: #666;
+    --accent: #2563eb;
+    --error: #dc2626;
+    --success: #16a34a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #111213;
+      --fg: #e8e8e8;
+      --card: #1b1c1e;
+      --border: #2e2f31;
+      --muted: #9a9a9a;
+      --accent: #60a5fa;
+      --error: #f87171;
+      --success: #4ade80;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    margin: 0;
+    padding: 2rem 1.5rem 4rem;
+  }
+  .wrap { max-width: 900px; margin: 0 auto; }
+  h1 { font-size: 1.4rem; margin-bottom: 0.25rem; }
+  p.sub { color: var(--muted); margin-top: 0; margin-bottom: 1.5rem; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+    overflow-x: auto;
+  }
+  h2 { font-size: 1rem; margin: 0 0 1rem; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  th, td { text-align: left; padding: 0.5rem 0.6rem; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  th { color: var(--muted); font-weight: 600; }
+  .status-success { color: var(--success); }
+  .status-error { color: var(--error); }
+  form { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+  input[type=text] {
+    flex: 1;
+    min-width: 200px;
+    padding: 0.5rem 0.7rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+    color: var(--fg);
+  }
+  button {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 6px;
+    background: var(--accent);
+    color: white;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  pre {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.75rem;
+    margin-top: 1rem;
+    font-size: 0.8rem;
+    overflow-x: auto;
+  }
+  .empty { color: var(--muted); font-style: italic; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Weather Agent Dashboard</h1>
+  <p class="sub">Recent queries and predictions from the weather-forecast MCP server, plus a manual lookup.</p>
+
+  <div class="card">
+    <h2>Recent agent queries</h2>
+    <div id="recent-container"><p class="empty">Loading...</p></div>
+  </div>
+
+  <div class="card">
+    <h2>Manual lookup</h2>
+    <form id="lookup-form">
+      <input type="text" id="location" name="location" placeholder="e.g. Chicago, IL" required>
+      <button type="submit">Look up</button>
+    </form>
+    <pre id="lookup-result" style="display:none;"></pre>
+  </div>
+</div>
+
+<script>
+async function loadRecent() {
+  const container = document.getElementById("recent-container");
+  try {
+    const resp = await fetch("/api/recent?limit=25");
+    const data = await resp.json();
+    if (!data.rows || data.rows.length === 0) {
+      container.innerHTML = '<p class="empty">No queries logged yet - ask the agent something first.</p>';
+      return;
+    }
+    let html = "<table><thead><tr><th>Time</th><th>Tool</th><th>Location</th><th>Date</th><th>Result</th><th>Status</th></tr></thead><tbody>";
+    for (const row of data.rows) {
+      html += `<tr>
+        <td>${row.created_at ?? ""}</td>
+        <td>${row.tool_name ?? ""}</td>
+        <td>${row.location ?? ""}</td>
+        <td>${row.query_date ?? ""}</td>
+        <td>${row.result_summary ?? ""}</td>
+        <td class="status-${row.status}">${row.status ?? ""}</td>
+      </tr>`;
+    }
+    html += "</tbody></table>";
+    container.innerHTML = html;
+  } catch (err) {
+    container.innerHTML = `<p class="empty">Could not load query log: ${err}</p>`;
+  }
+}
+
+document.getElementById("lookup-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const location = document.getElementById("location").value;
+  const pre = document.getElementById("lookup-result");
+  pre.style.display = "block";
+  pre.textContent = "Loading...";
+  try {
+    const resp = await fetch(`/api/lookup?location=${encodeURIComponent(location)}`);
+    const data = await resp.json();
+    pre.textContent = JSON.stringify(data, null, 2);
+  } catch (err) {
+    pre.textContent = `Error: ${err}`;
+  }
+});
+
+loadRecent();
+</script>
+</body>
+</html>
