@@ -305,6 +305,7 @@ if __name__ == "__main__":
         transport="http",
         host="0.0.0.0",
         port=port,
+        path="/mcp",
         stateless_http=True,
         json_response=True,
     )

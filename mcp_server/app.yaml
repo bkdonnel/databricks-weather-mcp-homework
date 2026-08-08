@@ -12,3 +12,8 @@ env:
     value: "database"
   - name: LAKEBASE_SECRET_KEY
     value: "lakebase-url"
+  - name: DATABRICKS_APP_DISABLE_OAUTH
+    value: "true"
+
+default_source_ip_access_rules:
+  - allow_public_access: true
